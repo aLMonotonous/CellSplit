@@ -12,7 +12,7 @@ ratio = 0.66
 path = 'data'
 
 
-def convert_xml(dataset_dir, ratio, classes):
+def convert_xml(dataset_dir, ratio, classes, rename=False):
     assert 0 < ratio < 1
     img_dir = os.path.join(dataset_dir, "JPEGImages")
     label_dir = os.path.join(dataset_dir, "Annotations")
@@ -43,6 +43,11 @@ def convert_xml(dataset_dir, ratio, classes):
         # print("Writing No."+str(idx))
         each_image_path = os.path.join(img_dir, img_names[idx])
         each_label_path = os.path.join(label_dir, label_names[idx])
+        if rename:
+            os.rename(each_label_path, os.path.join(label_dir, str(idx)+'.xml'))
+            # os.rename(each_image_path, os.path.join(img_dir, str(idx) + '.jpg'))
+            each_label_path = os.path.join(label_dir, str(idx)+'.xml')
+            # each_image_path = os.path.join(img_dir, str(idx) + '.jpg')
         tree = ET.parse(each_label_path)
         rt = tree.getroot()
         size = rt.find('size')
@@ -87,7 +92,8 @@ def read_lst(dataset_dir):
     print(train['file_path'].nunique(),"images in training set")
     print(train['class'].value_counts())
 
-convert_xml(path, ratio, classes)
+
+convert_xml(path, ratio, classes,True)
 read_lst(path)
 
 

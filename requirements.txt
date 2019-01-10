@@ -6,3 +6,4 @@ numpy
 opencv-python
 sklearn
 h5py
+pillow
