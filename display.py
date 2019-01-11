@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 
 import cv2
 
-test_num = 77
+test_num = 1
 # image = plt.imread('data/JPEGImages/BloodImage_00003.jpg')
 # plt.imshow(image)
 # plt.show()
