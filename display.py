@@ -31,15 +31,15 @@ def show_img_annotation(img, annotations):
                           (xmax, ymax), (255, 0, 0), 1)
             cv2.putText(image, name, (xmin + 10, ymin + 15),
                         cv2.FONT_HERSHEY_SIMPLEX, 1e-3 * image.shape[0], (255, 0, 0), 1)
-    cv2.imshow("display",image)
+    cv2.imshow("display", image)
     # cv2.imwrite("display",image)
     cv2.waitKey()
 
 
 
-def get_img_annotation(num):
-    img_path = 'data/JPEGImages/' + str(num) + '.jpg'
-    ana_path = 'data/Annotations/'+str(num)+'.xml'
+def get_img_annotation(num,  root=''):
+    img_path = root+'data/JPEGImages/' + str(num) + '.jpg'
+    ana_path = root+'data/Annotations/'+str(num)+'.xml'
     tree = ET.parse(ana_path)
     root = tree.getroot()
     annotations = []
@@ -53,7 +53,8 @@ def get_img_annotation(num):
         annotations.append([cls_name, xmin, ymin, xmax, ymax])
     return img_path, annotations
 
-img, anno = get_img_annotation(test_num)
-show_img_annotation(img, anno)
+if __name__ == '__main__':
+    img, anno = get_img_annotation(test_num)
+    show_img_annotation(img, anno)
 
 
