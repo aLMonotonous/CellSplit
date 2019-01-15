@@ -58,6 +58,7 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
     n_boxes = len(boxes)
     best_iou_bbox = np.zeros(n_boxes).astype('float32')
     best_anchor_bbox = np.zeros([n_boxes, 4]).astype('int')
+    best_rgr_bbox = np.zeros([n_boxes, 4]).astype('float32')
 
     for ibox in boxes:
         # no need for class label
@@ -95,8 +96,6 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
                             # print((axmin, aymin), (axmax, aymax))
                             pass
                             # cv2.rectangle(canv, (axmin, aymin), (axmax, aymax), clr)
-
-
     for iratio in ratios:
         for isize in anchor_sizes:
             ah = int(np.sqrt(iratio * isize))
@@ -120,6 +119,7 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
                         if iou > best_iou_bbox[idx_dbox]:
                             best_iou_bbox[idx_dbox] = iou
                             best_anchor_bbox[idx_dbox] = cur_anchor
+
     if detail:
         print(best_iou_bbox, best_anchor_bbox)
         for b in best_anchor_bbox:
@@ -130,10 +130,6 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
         cv2.waitKey(0)
 
 
-
-
-
-
 # cal_rpn_y(boxes, w, h, dscale, ratios, sizes)
-(img, test_boxex) = get_img_annotation(1, root='../')
-cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes,True )
+(img, test_boxex) = get_img_annotation(123, root='../')
+cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes, True)
