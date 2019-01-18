@@ -7,7 +7,7 @@ from display import get_img_annotation
 
 img_width, img_height = (480, 640)
 # note that down scale means the ratio along singe single height or width
-down_scale = 1 / 4
+down_scale = 1 / 8
 # 40,30
 anchor_ratios = [1, 0.5, 1.5]
 anchor_sizes = [128., 512., 2048.]
@@ -71,7 +71,7 @@ def cal_anchor_index(x, y, idx_sizes, index_ratio, lx, ly, lis, lir):
 def reverse_anchor_shape(index, ratios, sizes):
     """
     reverse shape from index
-    :param index: [x,y,ratio+size*len(ratio)]
+    :param index: [x,y,ratio+size*len(ratios)]
     :param ratios:
     :param sizes:
     :return:
@@ -115,9 +115,12 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
     best_iou_bbox = np.zeros(n_boxes).astype('float32')
     best_anchor_bbox = np.zeros([n_boxes, 4]).astype('int')
     best_rgr_bbox = np.zeros([n_boxes, 4]).astype('float32')
+    # index:[x,y,anchor_index]
+    best_anchor_index = np.zeros([n_boxes, 3]).astype('uint8')
 
     # n_anchors = dw * dh *
     anchor_cls_target = -1 * np.ones([dh, dw, len(ratios) * len(sizes)])
+    anchor_rgr_target = -1 * np.ones([dh, dw, 4 * len(ratios) * len(sizes)])
 
     for ibox in boxes:
         # no need for class label
@@ -173,6 +176,7 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
                         continue
                     # anchor_index = cal_anchor_index()
                     cur_anchor = [axmin, aymin, axmax, aymax]
+                    cur_anchor_idx = [ix, iy, idx_size * len(ratios) + idx_ratio]
                     # cal IoU for every bbox
                     for idx_dbox, ib in enumerate(dboxes):
                         iou = intersection(cur_anchor, ib) / union(cur_anchor, ib)
@@ -181,8 +185,18 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
                             anchor_cls_target[ix, iy, idx_ratio + idx_size * len(ratios)] = 1
                             if iou > best_iou_bbox[idx_dbox]:
                                 best_iou_bbox[idx_dbox] = iou
+                                # record index for best anchor, could be use for update rgr target
                                 best_anchor_bbox[idx_dbox] = cur_anchor
+                                best_anchor_index[idx_dbox] = cur_anchor_idx
                                 best_rgr_bbox[idx_dbox] = (cal_rgr_target(ib, cur_anchor))
+                                # do not update rgr target here
+                                # only best anchor for bbox deserve a rgr para.
+        # after find best anchor for every bbox (suppose),
+        # update rgr target
+        for idx_dbox, ib in enumerate(dboxes):
+            x, y, idx = best_anchor_index[idx_dbox]
+            start = int(idx * 4)
+            anchor_rgr_target[x, y, start:start + 4] = best_rgr_bbox[idx_dbox]
 
     if detail:
         print("best iou box")
@@ -191,7 +205,11 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
         print(best_anchor_bbox)
         print(dboxes)
         print("best rgr target")
-        print(best_rgr_bbox)
+        # print(anchor_rgr_target)
+        shape = (dh, dw, len(ratios) * len(sizes))
+        for idx in itertools.product(*[range(s) for s in shape]):
+            if anchor_rgr_target[idx] != -1:
+                print(idx, anchor_rgr_target[idx])
         print("cls target")
         print(anchor_cls_target)
         for b in best_anchor_bbox:
