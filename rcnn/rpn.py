@@ -122,6 +122,13 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
     anchor_cls_target = -1 * np.ones([dh, dw, len(ratios) * len(sizes)])
     anchor_rgr_target = -1 * np.ones([dh, dw, 4 * len(ratios) * len(sizes)])
 
+    # record is this anchor valid for cls training
+    anchor_valid_cls = np.zeros([dh, dw, len(ratios) * len(sizes)]).astype('uint8')
+
+    # record is this anchor have bigger overlap with bbox
+    # that determines  if it is valid for a bbox rgr
+    anchor_overlap_rgr = np.zeros([dh, dw, len(ratios) * len(sizes)]).astype('uint8')
+
     for ibox in boxes:
         # no need for class label
         ibox = np.array(ibox[1:]).astype('float32')
@@ -162,6 +169,7 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
         for idx_ratio, iratio in enumerate(ratios):
             ah = int(np.sqrt(iratio * isize))
             aw = int(isize / ah)
+            idx_anchor = idx_ratio + idx_size * len(ratios)
             for ix in range(dh):
                 axmin = int(ix - ah / 2)
                 axmax = int(ix + ah / 2)
@@ -176,13 +184,15 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
                         continue
                     # anchor_index = cal_anchor_index()
                     cur_anchor = [axmin, aymin, axmax, aymax]
-                    cur_anchor_idx = [ix, iy, idx_size * len(ratios) + idx_ratio]
+                    cur_anchor_idx = [ix, iy, idx_anchor]
                     # cal IoU for every bbox
                     for idx_dbox, ib in enumerate(dboxes):
                         iou = intersection(cur_anchor, ib) / union(cur_anchor, ib)
                         if iou > iou_label_threshold:
                             # note that there could be bbox that has no anchor
-                            anchor_cls_target[ix, iy, idx_ratio + idx_size * len(ratios)] = 1
+                            anchor_overlap_rgr[ix, iy, idx_anchor] = 1
+                            # for overlap > threshold , set overlap
+                            anchor_cls_target[ix, iy, idx_anchor] = 1
                             if iou > best_iou_bbox[idx_dbox]:
                                 best_iou_bbox[idx_dbox] = iou
                                 # record index for best anchor, could be use for update rgr target
@@ -196,6 +206,7 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
         for idx_dbox, ib in enumerate(dboxes):
             x, y, idx = best_anchor_index[idx_dbox]
             start = int(idx * 4)
+            anchor_valid_cls[x, y, start:start + 4] = 1
             anchor_rgr_target[x, y, start:start + 4] = best_rgr_bbox[idx_dbox]
 
     if detail:
@@ -224,7 +235,26 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
         cv2.imshow('BBox Downscale', canv)
         cv2.waitKey(0)
 
+    # TODO
+    #  Add filters to reduce data imbalance
+
+    anchor_valid_cls = np.transpose(anchor_valid_cls, [2, 0, 1])
+    anchor_valid_cls = np.expand_dims(anchor_valid_cls, axis=0)
+
+    anchor_overlap_rgr = np.transpose(anchor_overlap_rgr, [2, 0, 1])
+    anchor_overlap_rgr = np.expand_dims(anchor_overlap_rgr, axis=0)
+
+    anchor_rgr_target = np.transpose(anchor_rgr_target, [2, 0, 1])
+    anchor_rgr_target = np.expand_dims(anchor_rgr_target, axis=0)
+
+    rgr_y = np.concatenate([np.repeat(anchor_overlap_rgr, 4, axis=1), anchor_rgr_target], axis=1)
+    cls_y = np.concatenate([anchor_valid_cls, anchor_overlap_rgr], axis=1)
+
+    print(rgr_y)
+    print('-----------'*3)
+    print(cls_y)
+
 
 # cal_rpn_y(boxes, w, h, dscale, ratios, sizes)
 (img, test_boxex) = get_img_annotation(1, root='../')
-cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes, True)
+cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes, False)
