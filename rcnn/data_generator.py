@@ -6,18 +6,6 @@ import numpy as np
 from display import get_img_annotation
 from rcnn.Configure import Configure
 
-C = Configure()
-img_width = C.img_width
-img_height = C.img_height
-# note that down scale means the ratio along singe single height or width
-down_scale = C.down_scale
-# 30,40
-anchor_ratios = C.anchor_ratios
-anchor_sizes = C.anchor_sizes
-overlap_max = C.overlap_max
-overlap_min = C.overlap_min
-ol_range = [overlap_min, overlap_max]
-
 
 def union(au, bu):
     area_a = (au[2] - au[0]) * (au[3] - au[1])
@@ -265,15 +253,35 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, overlap_range, detail=False):
 
     rgr_y = np.concatenate([np.repeat(anchor_overlap_rgr, 4, axis=1), anchor_rgr_target], axis=1)
     cls_y = np.concatenate([anchor_valid_cls, anchor_overlap_rgr], axis=1)
-
-    print(rgr_y)
-    print('-----------' * 3)
-    print(cls_y)
-    print('-----------' * 3)
-    print('nums')
-    print(len(pos_locs[0]), len(neg_locs[0]))
+    return rgr_y, cls_y
 
 
 # cal_rpn_y(boxes, w, h, dscale, ratios, sizes)
-(img, test_boxex) = get_img_annotation(1, root='../')
-cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes, ol_range)
+if __name__ == '__main__':
+    C = Configure()
+    img_width = C.img_width
+    img_height = C.img_height
+    # note that down scale means the ratio along singe single height or width
+    down_scale = C.down_scale
+    # 30,40
+    anchor_ratios = C.anchor_ratios
+    anchor_sizes = C.anchor_sizes
+    overlap_max = C.overlap_max
+    overlap_min = C.overlap_min
+    ol_range = [overlap_min, overlap_max]
+    data_xs = []
+    data_cls_ys = []
+    data_rgr_ys = []
+    save_path_x = 'data\\merge_data\\x.npy'
+    save_path_rgr = 'data\\merge_data\\rgr.npy'
+    save_path_cls = 'data\\merge_data\\cls.npy'
+
+    for i in range(0, 363):
+        (img, test_boxex) = get_img_annotation(1, root='../')
+        rgr_y, cls_y = cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes, ol_range)
+        data_xs.append(img)
+        data_rgr_ys.append(rgr_y)
+        data_cls_ys.append(cls_y)
+    np.save(save_path_x, data_xs)
+    np.save(save_path_rgr, data_rgr_ys)
+    np.save(save_path_cls, data_cls_ys)
