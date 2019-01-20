@@ -1,9 +1,11 @@
 pandas
 matplotlib
 tensorflow
-keras – 2.0.3
+keras
 numpy
 opencv-python
 sklearn
 h5py
 pillow
+graphviz
+pydot

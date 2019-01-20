@@ -4,14 +4,19 @@ import cv2
 import numpy as np
 
 from display import get_img_annotation
+from rcnn.Configure import Configure
 
-img_width, img_height = (480, 640)
+C = Configure()
+img_width = C.img_width
+img_height = C.img_height
 # note that down scale means the ratio along singe single height or width
-down_scale = 1 / 8
-# 40,30
-anchor_ratios = [1, 0.5, 1.5]
-anchor_sizes = [128., 512., 2048.]
-iou_label_threshold = 0.5
+down_scale = C.down_scale
+# 30,40
+anchor_ratios = C.anchor_ratios
+anchor_sizes = C.anchor_sizes
+overlap_max = C.overlap_max
+overlap_min = C.overlap_min
+ol_range = [overlap_min, overlap_max]
 
 
 def union(au, bu):
@@ -89,7 +94,7 @@ def reverse_anchor_shape(index, ratios, sizes):
     return xmin, ymin, xmax, ymax
 
 
-def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
+def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, overlap_range, detail=False):
     """
      calculate training target for region proposal network
      anchor order: x,y,size,ratio
@@ -100,6 +105,7 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
     :param dscale: down sample scale after Feature Extractor
     :param ratios: anchors boxes ratios
     :param sizes:  anchor boxes sizes
+    :param overlap_range: [min,max]
     :return:
         target_rgr : bounding box regression parameters for each bbox and best fitting anchor
             feature map size * boxes per point * 4
@@ -110,6 +116,8 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
 
     dw = int(w * dscale)
     dh = int(h * dscale)
+    ol_min = overlap_range[0]
+    ol_max = overlap_range[1]
 
     n_boxes = len(boxes)
     best_iou_bbox = np.zeros(n_boxes).astype('float32')
@@ -188,11 +196,13 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
                     # cal IoU for every bbox
                     for idx_dbox, ib in enumerate(dboxes):
                         iou = intersection(cur_anchor, ib) / union(cur_anchor, ib)
-                        if iou > iou_label_threshold:
+                        if iou > ol_max:
+                            # this is a valid positive anchor
                             # note that there could be bbox that has no anchor
                             anchor_overlap_rgr[ix, iy, idx_anchor] = 1
                             # for overlap > threshold , set overlap
                             anchor_cls_target[ix, iy, idx_anchor] = 1
+                            anchor_valid_cls[ix, iy, idx_anchor] = 1
                             if iou > best_iou_bbox[idx_dbox]:
                                 best_iou_bbox[idx_dbox] = iou
                                 # record index for best anchor, could be use for update rgr target
@@ -201,6 +211,9 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
                                 best_rgr_bbox[idx_dbox] = (cal_rgr_target(ib, cur_anchor))
                                 # do not update rgr target here
                                 # only best anchor for bbox deserve a rgr para.
+                        if iou < ol_min:
+                            # this is a valid negative anchor
+                            anchor_valid_cls[ix, iy, idx_anchor] = 1
         # after find best anchor for every bbox (suppose),
         # update rgr target
         for idx_dbox, ib in enumerate(dboxes):
@@ -247,14 +260,20 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, detail=False):
     anchor_rgr_target = np.transpose(anchor_rgr_target, [2, 0, 1])
     anchor_rgr_target = np.expand_dims(anchor_rgr_target, axis=0)
 
+    pos_locs = np.where(np.logical_and(anchor_overlap_rgr[0, :, :, :] == 1, anchor_valid_cls[0, :, :, :] == 1))
+    neg_locs = np.where(np.logical_and(anchor_overlap_rgr[0, :, :, :] == 0, anchor_valid_cls[0, :, :, :] == 1))
+
     rgr_y = np.concatenate([np.repeat(anchor_overlap_rgr, 4, axis=1), anchor_rgr_target], axis=1)
     cls_y = np.concatenate([anchor_valid_cls, anchor_overlap_rgr], axis=1)
 
     print(rgr_y)
-    print('-----------'*3)
+    print('-----------' * 3)
     print(cls_y)
+    print('-----------' * 3)
+    print('nums')
+    print(len(pos_locs[0]), len(neg_locs[0]))
 
 
 # cal_rpn_y(boxes, w, h, dscale, ratios, sizes)
 (img, test_boxex) = get_img_annotation(1, root='../')
-cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes, False)
+cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes, ol_range)
