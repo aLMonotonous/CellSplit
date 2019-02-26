@@ -11,5 +11,5 @@ class Configure:
         self.overlap_max = 0.7
         self.overlap_min = 0.3
         self.ol_range = [self.overlap_min, self.overlap_max]
-
+        self.n_cls = 4
         self.num_rois = 4

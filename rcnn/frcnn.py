@@ -58,6 +58,12 @@ def back_bone_nn(input_tensor=None, trainable=False):
 
 
 def rpn(base_layers, num_anchors):
+    """
+
+    :param base_layers:
+    :param num_anchors:
+    :return:
+    """
     x = Conv2D(512, (3, 3), padding='same', activation='relu', kernel_initializer='normal', name='rpn_conv1')(
         base_layers)
     x_class = Conv2D(num_anchors, (1, 1), activation='sigmoid', kernel_initializer='uniform', name='rpn_out_class')(x)

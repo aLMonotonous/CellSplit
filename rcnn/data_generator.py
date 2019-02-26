@@ -94,6 +94,7 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, overlap_range, detail=False):
     :param ratios: anchors boxes ratios
     :param sizes:  anchor boxes sizes
     :param overlap_range: [min,max]
+    :param detail :show detail info
     :return:
         target_rgr : bounding box regression parameters for each bbox and best fitting anchor
             feature map size * boxes per point * 4
@@ -277,7 +278,8 @@ if __name__ == '__main__':
     save_path_cls = 'data\\merge_data\\cls.npy'
 
     for i in range(0, 363):
-        (img, test_boxex) = get_img_annotation(1, root='../')
+        print(i)
+        (img, test_boxex) = get_img_annotation(i, root='../')
         rgr_y, cls_y = cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes, ol_range)
         data_xs.append(img)
         data_rgr_ys.append(rgr_y)
