@@ -13,3 +13,5 @@ class Configure:
         self.ol_range = [self.overlap_min, self.overlap_max]
         self.n_cls = 4
         self.num_rois = 4
+
+        self.basenet_path = '../models/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5'

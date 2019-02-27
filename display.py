@@ -3,6 +3,8 @@ import xml.etree.ElementTree as ET
 import cv2
 
 test_num = 1
+
+
 # image = plt.imread('data/JPEGImages/BloodImage_00003.jpg')
 # plt.imshow(image)
 # plt.show()
@@ -16,9 +18,9 @@ def show_img_annotation(img, annotations):
     '''
     image = cv2.imread(img)
     for b in annotations:
-        name ,xmin, ymin, xmax, ymax = b
+        name, xmin, ymin, xmax, ymax = b
         if name == 'RBC':
-            cv2.rectangle(image,(xmin,ymin),(xmax,ymax),(0,255,0),1)
+            cv2.rectangle(image, (xmin, ymin), (xmax, ymax), (0, 255, 0), 1)
             cv2.putText(image, name, (xmin + 10, ymin + 15),
                         cv2.FONT_HERSHEY_SIMPLEX, 1e-3 * image.shape[0], (0, 255, 0), 1)
         if name == "WBC":
@@ -36,10 +38,9 @@ def show_img_annotation(img, annotations):
     cv2.waitKey()
 
 
-
-def get_img_annotation(num,  root=''):
-    img_path = root+'data/JPEGImages/' + str(num) + '.jpg'
-    ana_path = root+'data/Annotations/'+str(num)+'.xml'
+def get_img_annotation(num, root=''):
+    img_path = root + 'data/JPEGImages/' + str(num) + '.jpg'
+    ana_path = root + 'data/Annotations/' + str(num) + '.xml'
     tree = ET.parse(ana_path)
     root = tree.getroot()
     annotations = []
@@ -53,8 +54,7 @@ def get_img_annotation(num,  root=''):
         annotations.append([cls_name, xmin, ymin, xmax, ymax])
     return img_path, annotations
 
+
 if __name__ == '__main__':
     img, anno = get_img_annotation(test_num)
     show_img_annotation(img, anno)
-
-

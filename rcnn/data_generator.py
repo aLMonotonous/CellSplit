@@ -204,6 +204,7 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, overlap_range, detail=False):
                             # this is a valid negative anchor
                             anchor_valid_cls[ix, iy, idx_anchor] = 1
         # after find best anchor for every bbox (suppose),
+        # TODO there should be a way to solve when can not find a best anchor for a bbox
         # update rgr target
         for idx_dbox, ib in enumerate(dboxes):
             x, y, idx = best_anchor_index[idx_dbox]
@@ -273,17 +274,19 @@ if __name__ == '__main__':
     data_xs = []
     data_cls_ys = []
     data_rgr_ys = []
-    save_path_x = 'data\\merge_data\\x.npy'
-    save_path_rgr = 'data\\merge_data\\rgr.npy'
-    save_path_cls = 'data\\merge_data\\cls.npy'
+    save_path_x = '../data/merge_data/x.npy'
+    save_path_rgr = '../data/merge_data/rgr.npy'
+    save_path_cls = '../data/merge_data/cls.npy'
 
-    for i in range(0, 363):
+    for i in range(0, 1):
         print(i)
         (img, test_boxex) = get_img_annotation(i, root='../')
         rgr_y, cls_y = cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes, ol_range)
+        rgr_y = rgr_y.transpose((0, 2, 3, 1)).astype('float32')
+        cls_y = cls_y.transpose((0, 2, 3, 1)).astype('float32')
         data_xs.append(img)
         data_rgr_ys.append(rgr_y)
         data_cls_ys.append(cls_y)
-    np.save(save_path_x, data_xs)
-    np.save(save_path_rgr, data_rgr_ys)
-    np.save(save_path_cls, data_cls_ys)
+    # np.save(save_path_x, data_xs)
+    # np.save(save_path_rgr, data_rgr_ys)
+    # np.save(save_path_cls, data_cls_ys)
