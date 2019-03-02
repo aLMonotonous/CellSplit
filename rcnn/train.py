@@ -42,7 +42,7 @@ opt_rpn = Adam(lr=1e-5)
 loss_rpn = [losses.rpn_loss_cls(num_anchors), losses.rpn_loss_regr(num_anchors)]
 model_rpn.compile(optimizer=opt_rpn, loss=loss_rpn, metrics={'dense_class_{}'.format(C.n_cls): 'accuracy'})
 
-num_epochs = 16
+num_epochs = 1
 
 all_imgs = DG.load_data('../', C)
 random.shuffle(all_imgs)
@@ -55,6 +55,7 @@ data_gen_test = DG.get_rpn_target(test_imgs, C)
 epoch_length = 10
 losses = np.zeros((epoch_length, 5))
 print("Start Training")
+X, Y = next(data_gen_train)
 for idx_epoch in range(num_epochs):
     # progbar = generic_utils.Progbar(num_epochs)
     print('Epoch {}/{}'.format(idx_epoch + 1, num_epochs))
@@ -71,7 +72,7 @@ for idx_epoch in range(num_epochs):
             # progbar.update(iter_num, ('rpn_cls', np.mean(losses[:iter_num, 0])),
             #                ('rpn_regr', np.mean(losses[:iter_num, 1])))
             iter_num += 1
-
+            print(iter_num)
             if iter_num == epoch_length:
                 loss_rpn_cls = np.mean(losses[:, 0])
                 loss_rpn_regr = np.mean(losses[:, 1])
@@ -79,5 +80,5 @@ for idx_epoch in range(num_epochs):
                 print(idx_epoch, loss_rpn_cls, loss_rpn_regr, duration)
                 break
         except Exception as e:
-            print(e)
+            print("e", e)
             continue

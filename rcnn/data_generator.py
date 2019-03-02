@@ -101,7 +101,7 @@ def cal_rpn_y(boxes, C, detail=False):
     ol_min = C.ol_range[0]
     ol_max = C.ol_range[1]
 
-    n_boxes = len(C.boxes)
+    n_boxes = len(boxes)
     best_iou_bbox = np.zeros(n_boxes).astype('float32')
     best_anchor_bbox = np.zeros([n_boxes, 4]).astype('int')
     best_rgr_bbox = np.zeros([n_boxes, 4]).astype('float32')
@@ -109,15 +109,15 @@ def cal_rpn_y(boxes, C, detail=False):
     best_anchor_index = np.zeros([n_boxes, 3]).astype('uint8')
 
     # n_anchors = dw * dh *
-    anchor_cls_target = -1 * np.ones([dh, dw, len(ratios) * len(sizes)])
-    anchor_rgr_target = -1 * np.ones([dh, dw, 4 * len(ratios) * len(sizes)])
+    anchor_cls_target = -1 * np.ones([dh, dw, len(C.anchor_ratios) * len(C.anchor_sizes)])
+    anchor_rgr_target = -1 * np.ones([dh, dw, 4 * len(C.anchor_ratios) * len(C.anchor_sizes)])
 
     # record is this anchor valid for cls training
-    anchor_valid_cls = np.zeros([dh, dw, len(ratios) * len(sizes)]).astype('uint8')
+    anchor_valid_cls = np.zeros([dh, dw, len(C.anchor_ratios) * len(C.anchor_sizes)]).astype('uint8')
 
     # record is this anchor have bigger overlap with bbox
     # that determines  if it is valid for a bbox rgr
-    anchor_overlap_rgr = np.zeros([dh, dw, len(ratios) * len(sizes)]).astype('uint8')
+    anchor_overlap_rgr = np.zeros([dh, dw, len(C.anchor_ratios) * len(C.anchor_sizes)]).astype('uint8')
 
     for ibox in boxes:
         # no need for class label
@@ -164,13 +164,13 @@ def cal_rpn_y(boxes, C, detail=False):
                 axmin = int(ix - ah / 2)
                 axmax = int(ix + ah / 2)
                 # ignore the box across the boundary of feature map
-                if axmin < 0 or axmax > h:
+                if axmin < 0 or axmax > C.img_height:
                     continue
                 for iy in range(dw):
                     # for every position of Feature map, generate an anchor
                     aymin = int(iy - aw / 2)
                     aymax = int(iy + aw / 2)
-                    if aymin < 0 or aymax > w:
+                    if aymin < 0 or aymax > C.img_width:
                         continue
                     # anchor_index = cal_anchor_index()
                     cur_anchor = [axmin, aymin, axmax, aymax]
@@ -278,8 +278,8 @@ def get_rpn_target(all_imgs, C, mode='train'):
             # tf
             x_img = np.transpose(x_img, (0, 2, 3, 1))
             y_rpn_cls = np.transpose(y_rpn_cls, (0, 2, 3, 1))
-            y_rpn_regr = np.transpose(y_rpn_regr, (0, 2, 3, 1))
-            yield np.copy(x_img), [np.copy(y_rpn_cls), np.copy(y_rpn_regr)]
+            y_rpn_rgr = np.transpose(y_rpn_rgr, (0, 2, 3, 1))
+            yield np.copy(x_img), [np.copy(y_rpn_cls), np.copy(y_rpn_rgr)]
 
 
 def load_data(path, C):
