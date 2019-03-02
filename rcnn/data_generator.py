@@ -242,13 +242,18 @@ def cal_rpn_y(boxes, C, detail=False):
 
     anchor_rgr_target = np.transpose(anchor_rgr_target, [2, 0, 1])
     anchor_rgr_target = np.expand_dims(anchor_rgr_target, axis=0)
+    anchor_cls_target = np.expand_dims(anchor_cls_target, axis=0)
 
     pos_locs = np.where(np.logical_and(anchor_overlap_rgr[0, :, :, :] == 1, anchor_valid_cls[0, :, :, :] == 1))
     neg_locs = np.where(np.logical_and(anchor_overlap_rgr[0, :, :, :] == 0, anchor_valid_cls[0, :, :, :] == 1))
 
     rgr_y = np.concatenate([np.repeat(anchor_overlap_rgr, 4, axis=1), anchor_rgr_target], axis=1)
     cls_y = np.concatenate([anchor_valid_cls, anchor_overlap_rgr], axis=1)
-    return rgr_y, cls_y
+    # rgr_y = anchor_rgr_target
+    #
+    # cls_y = anchor_cls_target
+    # print(cls_y.shape, rgr_y.shape)
+    return cls_y, rgr_y
 
 
 def get_rpn_target(all_imgs, C, mode='train'):
@@ -279,6 +284,9 @@ def get_rpn_target(all_imgs, C, mode='train'):
             x_img = np.transpose(x_img, (0, 2, 3, 1))
             y_rpn_cls = np.transpose(y_rpn_cls, (0, 2, 3, 1))
             y_rpn_rgr = np.transpose(y_rpn_rgr, (0, 2, 3, 1))
+            # print(y_rpn_cls.shape, y_rpn_rgr.shape )
+            y_rpn_cls = y_rpn_cls.astype('float32')
+            y_rpn_rgr = y_rpn_rgr.astype('float32')
             yield np.copy(x_img), [np.copy(y_rpn_cls), np.copy(y_rpn_rgr)]
 
 

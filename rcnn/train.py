@@ -5,6 +5,7 @@ import numpy as np
 from keras.layers import Input
 from keras.models import Model
 from keras.optimizers import Adam
+from keras.utils import plot_model
 
 import rcnn.data_generator as DG
 import rcnn.frcnn as nn
@@ -31,9 +32,9 @@ model_cls = Model([img_input, roi_input], classifier)
 model_all = Model([img_input, roi_input], rpn[:2] + classifier)
 
 # model_all.summary()
-# plot_model(model_rpn, to_file='model_rpn.jpg', show_shapes=True, show_layer_names=True)
-# plot_model(model_cls, to_file='model_cls.jpg', show_shapes=True, show_layer_names=True)
-# plot_model(model_all, to_file='model_all.jpg', show_shapes=True, show_layer_names=True)
+plot_model(model_rpn, to_file='model_rpn.jpg', show_shapes=True, show_layer_names=True)
+plot_model(model_cls, to_file='model_cls.jpg', show_shapes=True, show_layer_names=True)
+plot_model(model_all, to_file='model_all.jpg', show_shapes=True, show_layer_names=True)
 
 # train rpn
 model_rpn.load_weights(C.basenet_path, by_name=True)
@@ -55,7 +56,7 @@ data_gen_test = DG.get_rpn_target(test_imgs, C)
 epoch_length = 10
 losses = np.zeros((epoch_length, 5))
 print("Start Training")
-X, Y = next(data_gen_train)
+# X, Y = next(data_gen_train)
 for idx_epoch in range(num_epochs):
     # progbar = generic_utils.Progbar(num_epochs)
     print('Epoch {}/{}'.format(idx_epoch + 1, num_epochs))
@@ -64,6 +65,7 @@ for idx_epoch in range(num_epochs):
     while True:
         try:
             X, Y = next(data_gen_train)
+            print(X.shape, Y[0].shape, Y[1].shape)
             loss_rpn = model_rpn.train_on_batch(X, Y)
             P_rpn = model_rpn.predict_on_batch(X)
 
