@@ -82,19 +82,12 @@ def reverse_anchor_shape(index, ratios, sizes):
     return xmin, ymin, xmax, ymax
 
 
-def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, overlap_range, detail=False):
+def cal_rpn_y(boxes, C, detail=False):
     """
      calculate training target for region proposal network
      anchor order: x,y,size,ratio
      anchor[x,y,size_num,ratio_num]
     :param boxes: ground truth bounding boxs, list-like
-    :param w: image width
-    :param h: image height
-    :param dscale: down sample scale after Feature Extractor
-    :param ratios: anchors boxes ratios
-    :param sizes:  anchor boxes sizes
-    :param overlap_range: [min,max]
-    :param detail :show detail info
     :return:
         target_rgr : bounding box regression parameters for each bbox and best fitting anchor
             feature map size * boxes per point * 4
@@ -103,12 +96,12 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, overlap_range, detail=False):
     """
     dboxes = []
 
-    dw = int(w * dscale)
-    dh = int(h * dscale)
-    ol_min = overlap_range[0]
-    ol_max = overlap_range[1]
+    dw = int(C.img_width * C.down_scale)
+    dh = int(C.img_height * C.down_scale)
+    ol_min = C.ol_range[0]
+    ol_max = C.ol_range[1]
 
-    n_boxes = len(boxes)
+    n_boxes = len(C.boxes)
     best_iou_bbox = np.zeros(n_boxes).astype('float32')
     best_anchor_bbox = np.zeros([n_boxes, 4]).astype('int')
     best_rgr_bbox = np.zeros([n_boxes, 4]).astype('float32')
@@ -129,7 +122,7 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, overlap_range, detail=False):
     for ibox in boxes:
         # no need for class label
         ibox = np.array(ibox[1:]).astype('float32')
-        dboxes.append(ibox * dscale)
+        dboxes.append(ibox * C.down_scale)
     if detail:
         # for detail study
         # print(dboxes)
@@ -138,7 +131,7 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, overlap_range, detail=False):
             cv2.rectangle(canv, (ibox[0], ibox[1]), (ibox[2], ibox[3]), (0, 255, 0))
         # canv = np.zeros((dw, dh, 3), dtype="uint8")
         # show anchors
-        for iratio in ratios:
+        for iratio in C.down_scale:
             clr = get_random_clr()
             for isize in anchor_sizes:
                 cnt = 0
@@ -162,11 +155,11 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, overlap_range, detail=False):
                             # print((axmin, aymin), (axmax, aymax))
                             pass
                             # cv2.rectangle(canv, (axmin, aymin), (axmax, aymax), clr)
-    for idx_size, isize in enumerate(sizes):
-        for idx_ratio, iratio in enumerate(ratios):
+    for idx_size, isize in enumerate(C.anchor_sizes):
+        for idx_ratio, iratio in enumerate(C.anchor_ratios):
             ah = int(np.sqrt(iratio * isize))
             aw = int(isize / ah)
-            idx_anchor = idx_ratio + idx_size * len(ratios)
+            idx_anchor = idx_ratio + idx_size * len(C.anchor_ratios)
             for ix in range(dh):
                 axmin = int(ix - ah / 2)
                 axmax = int(ix + ah / 2)
@@ -258,9 +251,59 @@ def cal_rpn_y(boxes, w, h, dscale, ratios, sizes, overlap_range, detail=False):
     return rgr_y, cls_y
 
 
-# cal_rpn_y(boxes, w, h, dscale, ratios, sizes)
+def get_rpn_target(all_imgs, C, mode='train'):
+    while True:
+        if mode == 'train':
+            np.random.shuffle(all_imgs)
+        for img in all_imgs:
+            if img['dataset'] == 'test':
+                continue
+            img_path = img['filepath']
+            bboxes = img['bboxes']
+
+            x_img = cv2.imread(img_path)
+            rows, cols, _ = x_img.shape
+            y_rpn_cls, y_rpn_rgr = cal_rpn_y(bboxes, C)
+            # pre-procession
+            # BGR -> RGB
+            x_img = x_img[:, :, (2, 0, 1)]
+            x_img = x_img.astype(np.float32)
+            x_img[:, :, 0] -= C.img_channel_mean[0]
+            x_img[:, :, 1] -= C.img_channel_mean[1]
+            x_img[:, :, 2] -= C.img_channel_mean[2]
+            x_img /= C.img_scaling_factor
+
+            x_img = np.transpose(x_img, (2, 0, 1))
+            x_img = np.expand_dims(x_img, axis=0)
+            # tf
+            x_img = np.transpose(x_img, (0, 2, 3, 1))
+            y_rpn_cls = np.transpose(y_rpn_cls, (0, 2, 3, 1))
+            y_rpn_regr = np.transpose(y_rpn_regr, (0, 2, 3, 1))
+            yield np.copy(x_img), [np.copy(y_rpn_cls), np.copy(y_rpn_regr)]
+
+
+def load_data(path, C):
+    all_data = []
+    all_id = np.arange(C.total_data_num)
+    np.random.shuffle(all_id)
+    train_test_ratio = 0.66
+    mid = int(C.total_data_num * train_test_ratio)
+    train_set = all_id[:mid]
+    test_set = all_id[mid:]
+    for i in range(C.total_data_num):
+        (img, test_boxes) = get_img_annotation(i, root=path)
+        element = {'filepath': img, 'bboxes': test_boxes, 'dataset': 'train'}
+        if i in test_set:
+            element['dataset'] = 'test'
+        all_data.append(element)
+    return all_data
+
+    # cal_rpn_y(boxes, w, h, dscale, ratios, sizes)
+
+
 if __name__ == '__main__':
     C = Configure()
+    load_data('../', C)
     img_width = C.img_width
     img_height = C.img_height
     # note that down scale means the ratio along singe single height or width
@@ -271,22 +314,24 @@ if __name__ == '__main__':
     overlap_max = C.overlap_max
     overlap_min = C.overlap_min
     ol_range = [overlap_min, overlap_max]
-    data_xs = []
-    data_cls_ys = []
-    data_rgr_ys = []
-    save_path_x = '../data/merge_data/x.npy'
-    save_path_rgr = '../data/merge_data/rgr.npy'
-    save_path_cls = '../data/merge_data/cls.npy'
-
-    for i in range(0, 1):
-        print(i)
-        (img, test_boxex) = get_img_annotation(i, root='../')
-        rgr_y, cls_y = cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes, ol_range)
-        rgr_y = rgr_y.transpose((0, 2, 3, 1)).astype('float32')
-        cls_y = cls_y.transpose((0, 2, 3, 1)).astype('float32')
-        data_xs.append(img)
-        data_rgr_ys.append(rgr_y)
-        data_cls_ys.append(cls_y)
-    # np.save(save_path_x, data_xs)
-    # np.save(save_path_rgr, data_rgr_ys)
-    # np.save(save_path_cls, data_cls_ys)
+    save = False
+    if save:
+        data_xs = []
+        data_cls_ys = []
+        data_rgr_ys = []
+        save_path_x = '../data/merge_data/x.npy'
+        save_path_rgr = '../data/merge_data/rgr.npy'
+        save_path_cls = '../data/merge_data/cls.npy'
+        for i in range(0, 1):
+            print(i)
+            (img, test_boxex) = get_img_annotation(i, root='../')
+            rgr_y, cls_y = cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes,
+                                     ol_range)
+            rgr_y = rgr_y.transpose((0, 2, 3, 1)).astype('float32')
+            cls_y = cls_y.transpose((0, 2, 3, 1)).astype('float32')
+            data_xs.append(img)
+            data_rgr_ys.append(rgr_y)
+            data_cls_ys.append(cls_y)
+        np.save(save_path_x, data_xs)
+        np.save(save_path_rgr, data_rgr_ys)
+        np.save(save_path_cls, data_cls_ys)

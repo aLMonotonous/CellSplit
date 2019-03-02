@@ -13,5 +13,10 @@ class Configure:
         self.ol_range = [self.overlap_min, self.overlap_max]
         self.n_cls = 4
         self.num_rois = 4
-
+        self.total_data_num = 364
         self.basenet_path = '../models/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5'
+        self.img_channel_mean = [103.939, 116.779, 123.68]
+        self.img_scaling_factor = 1.0
+
+        self.model_path = '../models/rpn.h5'
+

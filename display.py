@@ -55,6 +55,9 @@ def get_img_annotation(num, root=''):
     return img_path, annotations
 
 
+
+
+
 if __name__ == '__main__':
     img, anno = get_img_annotation(test_num)
     show_img_annotation(img, anno)
