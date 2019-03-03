@@ -60,7 +60,7 @@ print("Start Training")
 best_loss = np.Inf
 # X, Y = next(data_gen_train)
 for idx_epoch in range(num_epochs):
-    progbar = generic_utils.Progbar(num_epochs)
+    # progbar = generic_utils.Progbar(num_epochs)
     print('Epoch {}/{}'.format(idx_epoch + 1, num_epochs))
     start_time = time.time()
     iter_num = 0
@@ -73,8 +73,8 @@ for idx_epoch in range(num_epochs):
 
             losses[iter_num, 0] = loss_rpn[1]
             losses[iter_num, 1] = loss_rpn[2]
-            progbar.update(iter_num, [('rpn_cls', np.mean(losses[:iter_num, 0])),
-                           ('rpn_regr', np.mean(losses[:iter_num, 1]))])
+            # progbar.update(iter_num, [('rpn_cls', np.mean(losses[:iter_num, 0])),
+            #                ('rpn_regr', np.mean(losses[:iter_num, 1]))])
             iter_num += 1
             print(iter_num)
             if iter_num == epoch_length:
