@@ -57,6 +57,7 @@ data_gen_test = DG.get_rpn_target(test_imgs, C)
 epoch_length = 10
 losses = np.zeros((epoch_length, 5))
 print("Start Training")
+best_loss = np.Inf
 # X, Y = next(data_gen_train)
 for idx_epoch in range(num_epochs):
     progbar = generic_utils.Progbar(num_epochs)
@@ -82,6 +83,13 @@ for idx_epoch in range(num_epochs):
                 duration = time.time() - start_time
                 print(idx_epoch, loss_rpn_cls, loss_rpn_regr, duration)
                 break
+                curr_loss = loss_rpn_cls + loss_rpn_regr
+                if curr_loss < best_loss:
+                    print('Total loss decreased from {} to {}, saving weights'.format(best_loss, curr_loss))
+                    best_loss = curr_loss
+                    model_rpn.save_weights(C.model_path)
+
+
         except Exception as e:
             print("e", e)
             continue
