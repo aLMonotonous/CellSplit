@@ -66,7 +66,7 @@ for idx_epoch in range(num_epochs):
     while True:
         try:
             X, Y = next(data_gen_train)
-            print(X.shape, Y[0].shape, Y[1].shape)
+            # print(X.shape, Y[0].shape, Y[1].shape)
             loss_rpn = model_rpn.train_on_batch(X, Y)
             P_rpn = model_rpn.predict_on_batch(X)
 
