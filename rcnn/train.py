@@ -6,6 +6,7 @@ from keras.layers import Input
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.utils import plot_model
+from keras.utils import generic_utils
 
 import rcnn.data_generator as DG
 import rcnn.frcnn as nn
@@ -32,9 +33,9 @@ model_cls = Model([img_input, roi_input], classifier)
 model_all = Model([img_input, roi_input], rpn[:2] + classifier)
 
 # model_all.summary()
-plot_model(model_rpn, to_file='model_rpn.jpg', show_shapes=True, show_layer_names=True)
-plot_model(model_cls, to_file='model_cls.jpg', show_shapes=True, show_layer_names=True)
-plot_model(model_all, to_file='model_all.jpg', show_shapes=True, show_layer_names=True)
+# plot_model(model_rpn, to_file='model_rpn.jpg', show_shapes=True, show_layer_names=True)
+# plot_model(model_cls, to_file='model_cls.jpg', show_shapes=True, show_layer_names=True)
+# plot_model(model_all, to_file='model_all.jpg', show_shapes=True, show_layer_names=True)
 
 # train rpn
 model_rpn.load_weights(C.basenet_path, by_name=True)
@@ -43,7 +44,7 @@ opt_rpn = Adam(lr=1e-5)
 loss_rpn = [losses.rpn_loss_cls(num_anchors), losses.rpn_loss_regr(num_anchors)]
 model_rpn.compile(optimizer=opt_rpn, loss=loss_rpn, metrics={'dense_class_{}'.format(C.n_cls): 'accuracy'})
 
-num_epochs = 1
+num_epochs = 10
 
 all_imgs = DG.load_data('../', C)
 random.shuffle(all_imgs)
@@ -58,7 +59,7 @@ losses = np.zeros((epoch_length, 5))
 print("Start Training")
 # X, Y = next(data_gen_train)
 for idx_epoch in range(num_epochs):
-    # progbar = generic_utils.Progbar(num_epochs)
+    progbar = generic_utils.Progbar(num_epochs)
     print('Epoch {}/{}'.format(idx_epoch + 1, num_epochs))
     start_time = time.time()
     iter_num = 0
@@ -71,8 +72,8 @@ for idx_epoch in range(num_epochs):
 
             losses[iter_num, 0] = loss_rpn[1]
             losses[iter_num, 1] = loss_rpn[2]
-            # progbar.update(iter_num, ('rpn_cls', np.mean(losses[:iter_num, 0])),
-            #                ('rpn_regr', np.mean(losses[:iter_num, 1])))
+            progbar.update(iter_num, [('rpn_cls', np.mean(losses[:iter_num, 0])),
+                           ('rpn_regr', np.mean(losses[:iter_num, 1]))])
             iter_num += 1
             print(iter_num)
             if iter_num == epoch_length:
