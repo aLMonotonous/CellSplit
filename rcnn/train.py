@@ -60,34 +60,35 @@ print("Start Training")
 best_loss = np.Inf
 # X, Y = next(data_gen_train)
 for idx_epoch in range(num_epochs):
-    # progbar = generic_utils.Progbar(num_epochs)
+    progbar = generic_utils.Progbar(num_epochs)
     print('Epoch {}/{}'.format(idx_epoch + 1, num_epochs))
     start_time = time.time()
     iter_num = 0
     while True:
         try:
             X, Y = next(data_gen_train)
-            # print(X.shape, Y[0].shape, Y[1].shape)
+            print(X.shape, Y[0].shape, Y[1].shape)
             loss_rpn = model_rpn.train_on_batch(X, Y)
             P_rpn = model_rpn.predict_on_batch(X)
 
             losses[iter_num, 0] = loss_rpn[1]
             losses[iter_num, 1] = loss_rpn[2]
-            # progbar.update(iter_num, [('rpn_cls', np.mean(losses[:iter_num, 0])),
-            #                ('rpn_regr', np.mean(losses[:iter_num, 1]))])
+            progbar.update(iter_num, [('rpn_cls', np.mean(losses[:iter_num, 0])),
+                           ('rpn_regr', np.mean(losses[:iter_num, 1]))])
             iter_num += 1
-            print(iter_num)
+            # print(iter_num)
             if iter_num == epoch_length:
                 loss_rpn_cls = np.mean(losses[:, 0])
                 loss_rpn_regr = np.mean(losses[:, 1])
                 duration = time.time() - start_time
                 print(idx_epoch, loss_rpn_cls, loss_rpn_regr, duration)
-                break
                 curr_loss = loss_rpn_cls + loss_rpn_regr
                 if curr_loss < best_loss:
                     print('Total loss decreased from {} to {}, saving weights'.format(best_loss, curr_loss))
                     best_loss = curr_loss
                     model_rpn.save_weights(C.model_path)
+                break
+
 
 
         except Exception as e:
