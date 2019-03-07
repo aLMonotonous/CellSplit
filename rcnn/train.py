@@ -5,7 +5,6 @@ import numpy as np
 from keras.layers import Input
 from keras.models import Model
 from keras.optimizers import Adam
-from keras.utils import plot_model
 from keras.utils import generic_utils
 
 import rcnn.data_generator as DG
@@ -58,6 +57,14 @@ epoch_length = 10
 losses = np.zeros((epoch_length, 5))
 print("Start Training")
 best_loss = np.Inf
+if C.data_load_type == 'whole':
+    save_path_x = '../data/merge_data/x.npy'
+    save_path_rgr = '../data/merge_data/rgr.npy'
+    save_path_cls = '../data/merge_data/cls.npy'
+    x_all = np.load(save_path_x)
+    cls_all = np.load(save_path_cls)
+    rgr_all = np.load(save_path_rgr)
+    data_idx = 0
 # X, Y = next(data_gen_train)
 for idx_epoch in range(num_epochs):
     progbar = generic_utils.Progbar(num_epochs)
@@ -66,7 +73,14 @@ for idx_epoch in range(num_epochs):
     iter_num = 0
     while True:
         try:
-            X, Y = next(data_gen_train)
+            if C.data_load_type == 'whole':
+                X = x_all[data_idx]
+                Y = [cls_all[data_idx], rgr_all[data_idx]]
+                print('using {}th data to train'.format(data_idx))
+                data_idx += 1
+            else:
+                X, Y = next(data_gen_train)
+
             print(X.shape, Y[0].shape, Y[1].shape)
             loss_rpn = model_rpn.train_on_batch(X, Y)
             P_rpn = model_rpn.predict_on_batch(X)
@@ -74,7 +88,7 @@ for idx_epoch in range(num_epochs):
             losses[iter_num, 0] = loss_rpn[1]
             losses[iter_num, 1] = loss_rpn[2]
             progbar.update(iter_num, [('rpn_cls', np.mean(losses[:iter_num, 0])),
-                           ('rpn_regr', np.mean(losses[:iter_num, 1]))])
+                                      ('rpn_regr', np.mean(losses[:iter_num, 1]))])
             iter_num += 1
             # print(iter_num)
             if iter_num == epoch_length:
