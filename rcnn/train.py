@@ -53,7 +53,7 @@ test_imgs = [s for s in all_imgs if s['dataset'] == 'test']
 data_gen_train = DG.get_rpn_target(train_imgs, C)
 data_gen_test = DG.get_rpn_target(test_imgs, C)
 
-epoch_length = 10
+epoch_length = 20
 losses = np.zeros((epoch_length, 5))
 print("Start Training")
 best_loss = np.Inf
@@ -67,28 +67,33 @@ if C.data_load_type == 'whole':
     data_idx = 0
 # X, Y = next(data_gen_train)
 for idx_epoch in range(num_epochs):
-    progbar = generic_utils.Progbar(num_epochs)
+    # progbar = generic_utils.Progbar(epoch_length)
     print('Epoch {}/{}'.format(idx_epoch + 1, num_epochs))
     start_time = time.time()
     iter_num = 0
     while True:
         try:
+            if C.data_load_type == 'FG':
+                # test of fit_generator, it still work slowly
+                model_rpn.fit_generator(data_gen_train, steps_per_epoch=20, epochs=10)
+                break
             if C.data_load_type == 'whole':
                 X = x_all[data_idx]
                 Y = [cls_all[data_idx], rgr_all[data_idx]]
-                print('using {}th data to train'.format(data_idx))
+                # print('using {}th data to train'.format(data_idx))
                 data_idx += 1
             else:
+                model_rpn.fit_generator(data_gen_train)
                 X, Y = next(data_gen_train)
 
-            print(X.shape, Y[0].shape, Y[1].shape)
+            # print(X.shape, Y[0].shape, Y[1].shape)
             loss_rpn = model_rpn.train_on_batch(X, Y)
             P_rpn = model_rpn.predict_on_batch(X)
 
             losses[iter_num, 0] = loss_rpn[1]
             losses[iter_num, 1] = loss_rpn[2]
-            progbar.update(iter_num, [('rpn_cls', np.mean(losses[:iter_num, 0])),
-                                      ('rpn_regr', np.mean(losses[:iter_num, 1]))])
+            # progbar.update(iter_num, [('rpn_cls', np.mean(losses[:iter_num, 0])),
+            #                           ('rpn_regr', np.mean(losses[:iter_num, 1]))])
             iter_num += 1
             # print(iter_num)
             if iter_num == epoch_length:

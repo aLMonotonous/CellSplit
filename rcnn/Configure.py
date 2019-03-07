@@ -19,6 +19,6 @@ class Configure:
         self.img_scaling_factor = 1.0
 
         self.model_path = '../models/rpn.h5'
-        # 'whole'/'step'
+        # 'whole'/'step'/'FG'
         self.data_load_type = 'whole'
 
