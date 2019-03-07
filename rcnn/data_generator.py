@@ -322,7 +322,7 @@ if __name__ == '__main__':
     overlap_max = C.overlap_max
     overlap_min = C.overlap_min
     ol_range = [overlap_min, overlap_max]
-    save = False
+    save = True
     if save:
         data_xs = []
         data_cls_ys = []
@@ -330,16 +330,14 @@ if __name__ == '__main__':
         save_path_x = '../data/merge_data/x.npy'
         save_path_rgr = '../data/merge_data/rgr.npy'
         save_path_cls = '../data/merge_data/cls.npy'
-        for i in range(0, 1):
-            print(i)
-            (img, test_boxex) = get_img_annotation(i, root='../')
-            rgr_y, cls_y = cal_rpn_y(test_boxex, img_width, img_height, down_scale, anchor_ratios, anchor_sizes,
-                                     ol_range)
-            rgr_y = rgr_y.transpose((0, 2, 3, 1)).astype('float32')
-            cls_y = cls_y.transpose((0, 2, 3, 1)).astype('float32')
-            data_xs.append(img)
-            data_rgr_ys.append(rgr_y)
-            data_cls_ys.append(cls_y)
+        all_imgs = load_data('../', C)
+        gen = get_rpn_target(all_imgs, C, mode='test')
+        for i in range(len(all_imgs)):
+            print('fixing {}th data'.format(i))
+            X, Y = next(gen)
+            data_xs.append(X)
+            data_cls_ys.append(Y[0])
+            data_rgr_ys.append(Y[1])
         np.save(save_path_x, data_xs)
         np.save(save_path_rgr, data_rgr_ys)
         np.save(save_path_cls, data_cls_ys)
