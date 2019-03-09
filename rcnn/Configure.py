@@ -1,13 +1,12 @@
-
 class Configure:
     def __init__(self):
-        self.img_width = 640
         self.img_height = 480
+        self.img_width = 640
         # note that down scale means the ratio along singe single height or width
-        self.down_scale = 1 / 8
+        self.down_scale = 1. / 8
         # 30,40
-        self.anchor_ratios = [1, 0.5, 1.5]
-        self.anchor_sizes = [128., 512., 2048.]
+        self.anchor_ratios = [1., 0.5, 2.]
+        self.anchor_sizes = [128., 256., 512.]
         self.overlap_max = 0.7
         self.overlap_min = 0.3
         self.ol_range = [self.overlap_min, self.overlap_max]
@@ -21,4 +20,3 @@ class Configure:
         self.model_path = '../models/rpn.h5'
         # 'whole'/'step'/'FG'
         self.data_load_type = 'whole'
-

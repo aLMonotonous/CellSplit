@@ -82,7 +82,7 @@ def reverse_anchor_shape(index, ratios, sizes):
     return xmin, ymin, xmax, ymax
 
 
-def cal_rpn_y(boxes, C, detail=False):
+def cal_rpn_y(boxes, C, detail=True):
     """
      calculate training target for region proposal network
      anchor order: x,y,size,ratio
@@ -109,15 +109,15 @@ def cal_rpn_y(boxes, C, detail=False):
     best_anchor_index = np.zeros([n_boxes, 3]).astype('uint8')
 
     # n_anchors = dw * dh *
-    anchor_cls_target = -1 * np.ones([dh, dw, len(C.anchor_ratios) * len(C.anchor_sizes)])
-    anchor_rgr_target = -1 * np.ones([dh, dw, 4 * len(C.anchor_ratios) * len(C.anchor_sizes)])
+    anchor_cls_target = -1 * np.ones([dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes)])
+    anchor_rgr_target = -1 * np.ones([dw, dh, 4 * len(C.anchor_ratios) * len(C.anchor_sizes)])
 
     # record is this anchor valid for cls training
-    anchor_valid_cls = np.zeros([dh, dw, len(C.anchor_ratios) * len(C.anchor_sizes)]).astype('uint8')
+    anchor_valid_cls = np.zeros([dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes)]).astype('uint8')
 
     # record is this anchor have bigger overlap with bbox
     # that determines  if it is valid for a bbox rgr
-    anchor_overlap_rgr = np.zeros([dh, dw, len(C.anchor_ratios) * len(C.anchor_sizes)]).astype('uint8')
+    anchor_overlap_rgr = np.zeros([dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes)]).astype('uint8')
 
     for ibox in boxes:
         # no need for class label
@@ -126,51 +126,50 @@ def cal_rpn_y(boxes, C, detail=False):
     if detail:
         # for detail study
         # print(dboxes)
-        canv = np.zeros((dw, dh, 3), dtype="uint8")
+        canv = np.zeros((dh, dw, 3), dtype="uint8")
         for ibox in dboxes:
             cv2.rectangle(canv, (ibox[0], ibox[1]), (ibox[2], ibox[3]), (0, 255, 0))
         # canv = np.zeros((dw, dh, 3), dtype="uint8")
         # show anchors
-        for iratio in C.down_scale:
-            clr = get_random_clr()
-            for isize in anchor_sizes:
-                cnt = 0
-                ah = int(np.sqrt(iratio * isize))
-                aw = int(isize / ah)
-                for ix in range(dh):
-                    axmin = int(ix - ah / 2)
-                    axmax = int(ix + ah / 2)
-                    # ignore the box across the boundary of feature map
-                    if axmin < 0 or axmax > h:
-                        continue
-                    for iy in range(dw):
-                        # for every position of Feature map, generate an anchor
-                        aymin = int(iy - aw / 2)
-                        aymax = int(iy + aw / 2)
-                        if aymin < 0 or aymax > w:
-                            continue
-                        cnt += 1
-                        # if cnt < 2:
-                        if ix == iy == min(dh, dw) // 2:
-                            # print((axmin, aymin), (axmax, aymax))
-                            pass
-                            # cv2.rectangle(canv, (axmin, aymin), (axmax, aymax), clr)
+        # for iratio in C.anchor_ratios:
+        #
+        #     for isize in anchor_sizes:
+        #         cnt = 0
+        #         ah = int(np.sqrt(iratio * isize))
+        #         aw = int(isize / ah)
+        #         for ix in range(dh):
+        #             axmin = int(ix - ah / 2)
+        #             axmax = int(ix + ah / 2)
+        #             # ignore the box across the boundary of feature map
+        #             if axmin < 0 or axmax > dh:
+        #                 continue
+        #             for iy in range(dw):
+        #                 # for every position of Feature map, generate an anchor
+        #                 aymin = int(iy - aw / 2)
+        #                 aymax = int(iy + aw / 2)
+        #                 if aymin < 0 or aymax > dw:
+        #                     continue
+        #                 cnt += 1
+        #                 # cv2.rectangle(canv, (aymin, axmin), (aymax, axmax,), get_random_clr())
+        #                 # if cnt < 2:
+        #                 # if ix == iy == min(dh, dw) // 2:
+        #                 #     cv2.rectangle(canv, (axmin, aymin), (axmax, aymax), get_random_clr())
     for idx_size, isize in enumerate(C.anchor_sizes):
         for idx_ratio, iratio in enumerate(C.anchor_ratios):
             ah = int(np.sqrt(iratio * isize))
             aw = int(isize / ah)
             idx_anchor = idx_ratio + idx_size * len(C.anchor_ratios)
-            for ix in range(dh):
-                axmin = int(ix - ah / 2)
-                axmax = int(ix + ah / 2)
+            for ix in range(dw):
+                axmin = int(ix - aw / 2)
+                axmax = int(ix + aw / 2)
                 # ignore the box across the boundary of feature map
-                if axmin < 0 or axmax > C.img_height:
+                if axmin < 0 or axmax > dw:
                     continue
-                for iy in range(dw):
+                for iy in range(dh):
                     # for every position of Feature map, generate an anchor
-                    aymin = int(iy - aw / 2)
-                    aymax = int(iy + aw / 2)
-                    if aymin < 0 or aymax > C.img_width:
+                    aymin = int(iy - ah / 2)
+                    aymax = int(iy + ah / 2)
+                    if aymin < 0 or aymax > dh:
                         continue
                     # anchor_index = cal_anchor_index()
                     cur_anchor = [axmin, aymin, axmax, aymax]
@@ -191,6 +190,7 @@ def cal_rpn_y(boxes, C, detail=False):
                                 best_anchor_bbox[idx_dbox] = cur_anchor
                                 best_anchor_index[idx_dbox] = cur_anchor_idx
                                 best_rgr_bbox[idx_dbox] = (cal_rgr_target(ib, cur_anchor))
+                                # print(best_rgr_bbox)
                                 # do not update rgr target here
                                 # only best anchor for bbox deserve a rgr para.
                         if iou < ol_min:
@@ -206,6 +206,7 @@ def cal_rpn_y(boxes, C, detail=False):
             anchor_rgr_target[x, y, start:start + 4] = best_rgr_bbox[idx_dbox]
 
     if detail:
+        # canv = np.zeros((dh, dw, 3), dtype="uint8")
         print("best iou box")
         print(best_iou_bbox)
         print("best anchor box")
@@ -213,19 +214,21 @@ def cal_rpn_y(boxes, C, detail=False):
         print(dboxes)
         print("best rgr target")
         # print(anchor_rgr_target)
-        shape = (dh, dw, len(ratios) * len(sizes))
+        shape = (dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes))
         for idx in itertools.product(*[range(s) for s in shape]):
             if anchor_rgr_target[idx] != -1:
                 print(idx, anchor_rgr_target[idx])
         print("cls target")
         print(anchor_cls_target)
+        # # show best anchors
         for b in best_anchor_bbox:
             cv2.rectangle(canv, (b[0], b[1]), (b[2], b[3]), get_random_clr())
-        shape = (dh, dw, len(ratios) * len(sizes))
-        for idx in itertools.product(*[range(s) for s in shape]):
-            if anchor_cls_target[idx] == 1.0:
-                b = reverse_anchor_shape(idx, ratios, sizes)
-                cv2.rectangle(canv, (b[0], b[1]), (b[2], b[3]), get_random_clr())
+        shape = (dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes))
+        # show valid postive anchors
+        # for idx in itertools.product(*[range(s) for s in shape]):
+        #     if anchor_cls_target[idx] == 1.0:
+        #         b = reverse_anchor_shape(idx, C.anchor_ratios, C.anchor_sizes)
+        #         cv2.rectangle(canv, (b[0], b[1]), (b[2], b[3]), get_random_clr())
 
     if detail:
         cv2.imshow('BBox Downscale', canv)
