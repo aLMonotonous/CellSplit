@@ -82,7 +82,7 @@ def reverse_anchor_shape(index, ratios, sizes):
     return xmin, ymin, xmax, ymax
 
 
-def cal_rpn_y(boxes, C, detail=True):
+def cal_rpn_y(boxes, C, detail=False):
     """
      calculate training target for region proposal network
      anchor order: x,y,size,ratio
