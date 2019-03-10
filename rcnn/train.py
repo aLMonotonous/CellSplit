@@ -5,7 +5,6 @@ import numpy as np
 from keras.layers import Input
 from keras.models import Model
 from keras.optimizers import Adam
-from keras.utils import generic_utils
 
 import rcnn.data_generator as DG
 import rcnn.frcnn as nn
@@ -13,7 +12,7 @@ from rcnn import losses as losses
 from rcnn.Configure import Configure
 
 C = Configure()
-input_shape = (C.img_height, C.img_width, 3)
+input_shape = (C.img_width, C.img_height, 3)
 anchor_ratios = C.anchor_ratios
 anchor_sizes = C.anchor_sizes
 
@@ -77,10 +76,11 @@ for idx_epoch in range(num_epochs):
                 # test of fit_generator, it still work slowly
                 model_rpn.fit_generator(data_gen_train, steps_per_epoch=20, epochs=10)
                 break
-            if C.data_load_type == 'whole':
+            elif C.data_load_type == 'whole':
                 X = x_all[data_idx]
+                X = np.transpose(X, (0, 2, 1, 3))
                 Y = [cls_all[data_idx], rgr_all[data_idx]]
-                # print('using {}th data to train'.format(data_idx))
+                print('using {}th data to train'.format(data_idx))
                 data_idx += 1
             else:
                 model_rpn.fit_generator(data_gen_train)
@@ -112,4 +112,4 @@ for idx_epoch in range(num_epochs):
 
         except Exception as e:
             print("e", e)
-            continue
+            exit()
