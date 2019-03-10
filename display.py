@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-
+import numpy as np
 import cv2
 
 test_num = 1
@@ -9,7 +9,7 @@ test_num = 1
 # plt.imshow(image)
 # plt.show()
 
-def show_img_annotation(img, annotations):
+def show_img_annotation(img, annotations, withname=True):
     '''
 
     :param img: img path
@@ -18,21 +18,29 @@ def show_img_annotation(img, annotations):
     '''
     image = cv2.imread(img)
     for b in annotations:
-        name, xmin, ymin, xmax, ymax = b
+        if withname:
+            name, xmin, ymin, xmax, ymax = b
+        else:
+            xmin, ymin, xmax, ymax = b
+            name = ' '
         if name == 'RBC':
             cv2.rectangle(image, (xmin, ymin), (xmax, ymax), (0, 255, 0), 1)
             cv2.putText(image, name, (xmin + 10, ymin + 15),
                         cv2.FONT_HERSHEY_SIMPLEX, 1e-3 * image.shape[0], (0, 255, 0), 1)
-        if name == "WBC":
+        elif name == "WBC":
             cv2.rectangle(image, (xmin, ymin),
                           (xmax, ymax), (0, 0, 255), 1)
             cv2.putText(image, name, (xmin + 10, ymin + 15),
                         cv2.FONT_HERSHEY_SIMPLEX, 1e-3 * image.shape[0], (0, 0, 255), 1)
-        if name == "Platelets":
+        elif name == "Platelets":
             cv2.rectangle(image, (xmin, ymin),
                           (xmax, ymax), (255, 0, 0), 1)
             cv2.putText(image, name, (xmin + 10, ymin + 15),
                         cv2.FONT_HERSHEY_SIMPLEX, 1e-3 * image.shape[0], (255, 0, 0), 1)
+        else:
+            clr = list(np.random.random(size=3) * 256)
+            cv2.rectangle(image, (xmin, ymin),
+                          (xmax, ymax), clr, 1)
     cv2.imshow("display", image)
     # cv2.imwrite("display",image)
     cv2.waitKey()

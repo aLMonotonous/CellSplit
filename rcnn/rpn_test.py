@@ -6,6 +6,7 @@ from keras.models import Model
 
 import rcnn.frcnn as nn
 from rcnn.Configure import Configure
+from display import show_img_annotation
 
 
 def load_rpn_model(C):
@@ -55,7 +56,7 @@ def apply_regr_np(X, T):
         return X
 
 
-def non_max_suppression_fast(boxes, probs, overlap_thresh=0.9, max_boxes=300):
+def non_max_suppression_fast(boxes, probs, overlap_thresh=0.9, max_boxes=30):
     # code used from here: http://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
     # if there are no boxes, return an empty list
     if len(boxes) == 0:
@@ -167,7 +168,7 @@ def rpn_decode(cls_target, rgr_target, C, use_rgr=True):
             all_probs = np.delete(all_probs, idxs, 0)
 
             curr_layer += 1
-            result = non_max_suppression_fast(all_boxes, all_probs, overlap_thresh=overlap_thresh, max_boxes=max_boxes)[
+            result = non_max_suppression_fast(all_boxes, all_probs)[
                 0]
 
             return result
@@ -175,14 +176,22 @@ def rpn_decode(cls_target, rgr_target, C, use_rgr=True):
 
 if __name__ == '__main__':
     C = Configure()
-    img_path = '../data/JPEGImages/6.jpg'
+    img_path = '../data/JPEGImages/1.jpg'
     # all_imgs = DG.load_data('../', C)
     # test_imgs = [s for s in all_imgs if s['dataset'] == 'train']
     # data_gen_test = DG.get_rpn_target(test_imgs, C)
     # X, Y = next(data_gen_test)
     img = cv2.imread(img_path)
-    img = np.expand_dims(img, axis=0)
-    rpn_model = load_rpn_model(C)
-    res = rpn_model.predict(img)
-    for i in res:
-        print(np.shape(i))
+    # img = np.expand_dims(img, axis=0)
+    # rpn_model = load_rpn_model(C)
+    # res = rpn_model.predict(img)
+    #
+    save_path_rgr = '../data/merge_data/rgr.npy'
+    save_path_cls = '../data/merge_data/cls.npy'
+    cls_all = np.load(save_path_cls)
+    rgr_all = np.load(save_path_rgr)
+    res = [cls_all[0], rgr_all[1]]
+    boxes = rpn_decode(res[0], res[1], C)
+    print(boxes.shape)
+    boxes *= 8
+    show_img_annotation(img_path, boxes, False)
