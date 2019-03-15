@@ -56,7 +56,7 @@ def apply_regr_np(X, T):
         return X
 
 
-def non_max_suppression_fast(boxes, probs, overlap_thresh=0.9, max_boxes=30):
+def non_max_suppression_fast(boxes, probs, overlap_thresh=0.9, max_boxes=300):
     # code used from here: http://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
     # if there are no boxes, return an empty list
     if len(boxes) == 0:
@@ -174,7 +174,26 @@ def rpn_decode(cls_target, rgr_target, C, use_rgr=True):
             return result
 
 
-if __name__ == '__main__':
+def rpn_decode(cls_target, rgr_target, C):
+    cls = cls_target[0, :, :, :]
+    rgr = rgr_target[0, :, :, :]
+    boxes = []
+    for ix in range(cls.shape[0]):
+        for iy in range(cls.shape[1]):
+            for ia in range(cls.shape[2]):
+                if cls[ix, iy, ia] > 0.5:
+                    print(ix, iy, ia)
+                    box_x = ix
+                    box_y = iy
+                    ratio = C.anchor_ratios[ia % len(C.anchor_sizes)]
+                    size = C.anchor_sizes[int(ia / len(C.anchor_sizes))]
+                    h = int(np.sqrt(size * ratio))
+                    w = int(size / h)
+                    boxes.append([box_x, box_y, h, w])
+    return np.array(boxes)
+
+
+def test():
     C = Configure()
     img_path = '../data/JPEGImages/1.jpg'
     # all_imgs = DG.load_data('../', C)
@@ -182,16 +201,22 @@ if __name__ == '__main__':
     # data_gen_test = DG.get_rpn_target(test_imgs, C)
     # X, Y = next(data_gen_test)
     img = cv2.imread(img_path)
-    # img = np.expand_dims(img, axis=0)
-    # rpn_model = load_rpn_model(C)
-    # res = rpn_model.predict(img)
+    img = np.expand_dims(img, axis=0)
+    rpn_model = load_rpn_model(C)
+    res = rpn_model.predict(img)
     #
-    save_path_rgr = '../data/merge_data/rgr.npy'
-    save_path_cls = '../data/merge_data/cls.npy'
-    cls_all = np.load(save_path_cls)
-    rgr_all = np.load(save_path_rgr)
-    res = [cls_all[0], rgr_all[1]]
+    # save_path_rgr = '../data/merge_data/rgr.npy'
+    # save_path_cls = '../data/merge_data/cls.npy'
+    # cls_all = np.load(save_path_cls)
+    # rgr_all = np.load(save_path_rgr)
+
+    # res = [cls_all[0], rgr_all[1]]
+    print(res[0].shape, res[1].shape)
     boxes = rpn_decode(res[0], res[1], C)
-    print(boxes.shape)
+    print(np.shape(boxes))
     boxes *= 8
     show_img_annotation(img_path, boxes, False)
+
+
+if __name__ == '__main__':
+    test()
