@@ -284,8 +284,8 @@ def get_rpn_target(all_imgs, C, mode='train'):
             x_img = np.expand_dims(x_img, axis=0)
             # tf
             x_img = np.transpose(x_img, (0, 2, 3, 1))
-            y_rpn_cls = np.transpose(y_rpn_cls, (0, 2, 3, 1))
-            y_rpn_rgr = np.transpose(y_rpn_rgr, (0, 2, 3, 1))
+            y_rpn_cls = np.transpose(y_rpn_cls, (0, 3, 2, 1))
+            y_rpn_rgr = np.transpose(y_rpn_rgr, (0, 3, 2, 1))
             # print(y_rpn_cls.shape, y_rpn_rgr.shape )
             y_rpn_cls = y_rpn_cls.astype('float32')
             y_rpn_rgr = y_rpn_rgr.astype('float32')

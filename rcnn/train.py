@@ -12,7 +12,7 @@ from rcnn import losses as losses
 from rcnn.Configure import Configure
 
 C = Configure()
-input_shape = (C.img_width, C.img_height, 3)
+input_shape = (None, None, 3)
 anchor_ratios = C.anchor_ratios
 anchor_sizes = C.anchor_sizes
 
