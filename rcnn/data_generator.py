@@ -109,8 +109,8 @@ def cal_rpn_y(boxes, C, detail=False):
     best_anchor_index = np.zeros([n_boxes, 3]).astype('uint8')
 
     # n_anchors = dw * dh *
-    anchor_cls_target = -1 * np.ones([dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes)])
-    anchor_rgr_target = -1 * np.ones([dw, dh, 4 * len(C.anchor_ratios) * len(C.anchor_sizes)])
+    anchor_cls_target = np.zeros([dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes)])
+    anchor_rgr_target = np.zeros([dw, dh, 4 * len(C.anchor_ratios) * len(C.anchor_sizes)])
 
     # record is this anchor valid for cls training
     anchor_valid_cls = np.zeros([dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes)]).astype('uint8')
@@ -118,7 +118,7 @@ def cal_rpn_y(boxes, C, detail=False):
     # record is this anchor have bigger overlap with bbox
     # that determines  if it is valid for a bbox rgr
     anchor_overlap_rgr = np.zeros([dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes)]).astype('uint8')
-
+    detail = True
     for ibox in boxes:
         # no need for class label
         ibox = np.array(ibox[1:]).astype('float32')
@@ -184,15 +184,15 @@ def cal_rpn_y(boxes, C, detail=False):
                             # for overlap > threshold , set overlap
                             anchor_cls_target[ix, iy, idx_anchor] = 1
                             anchor_valid_cls[ix, iy, idx_anchor] = 1
-                            if iou > best_iou_bbox[idx_dbox]:
-                                best_iou_bbox[idx_dbox] = iou
-                                # record index for best anchor, could be use for update rgr target
-                                best_anchor_bbox[idx_dbox] = cur_anchor
-                                best_anchor_index[idx_dbox] = cur_anchor_idx
-                                best_rgr_bbox[idx_dbox] = (cal_rgr_target(ib, cur_anchor))
-                                # print(best_rgr_bbox)
-                                # do not update rgr target here
-                                # only best anchor for bbox deserve a rgr para.
+                        if iou > best_iou_bbox[idx_dbox]:
+                            best_iou_bbox[idx_dbox] = iou
+                            # record index for best anchor, could be use for update rgr target
+                            best_anchor_bbox[idx_dbox] = cur_anchor
+                            best_anchor_index[idx_dbox] = cur_anchor_idx
+                            best_rgr_bbox[idx_dbox] = (cal_rgr_target(ib, cur_anchor))
+                            # print(best_rgr_bbox)
+                            # do not update rgr target here
+                            # only best anchor for bbox deserve a rgr para.
                         if iou < ol_min:
                             # this is a valid negative anchor
                             anchor_valid_cls[ix, iy, idx_anchor] = 1
@@ -202,7 +202,7 @@ def cal_rpn_y(boxes, C, detail=False):
         for idx_dbox, ib in enumerate(dboxes):
             x, y, idx = best_anchor_index[idx_dbox]
             start = int(idx * 4)
-            anchor_valid_cls[x, y, start:start + 4] = 1
+            # anchor_valid_cls[x, y, start:start + 4] = 1
             anchor_rgr_target[x, y, start:start + 4] = best_rgr_bbox[idx_dbox]
 
     if detail:
@@ -216,7 +216,7 @@ def cal_rpn_y(boxes, C, detail=False):
         # print(anchor_rgr_target)
         shape = (dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes))
         for idx in itertools.product(*[range(s) for s in shape]):
-            if anchor_rgr_target[idx] != -1:
+            if anchor_rgr_target[idx] != 0:
                 print(idx, anchor_rgr_target[idx])
         print("cls target")
         print(anchor_cls_target)
@@ -253,10 +253,8 @@ def cal_rpn_y(boxes, C, detail=False):
     rgr_y = np.concatenate([np.repeat(anchor_overlap_rgr, 4, axis=1), anchor_rgr_target], axis=1)
     cls_y = np.concatenate([anchor_valid_cls, anchor_overlap_rgr], axis=1)
     # rgr_y = anchor_rgr_target
-    #
-    # cls_y = anchor_cls_target
-    # print(cls_y.shape, rgr_y.shape)
-
+    #   # cls_y = anchor_cls_target
+    # shape :(1,anchors_idx,w,h)
     return cls_y, rgr_y
 
 

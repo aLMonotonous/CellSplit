@@ -30,7 +30,7 @@ model_rpn = Model(img_input, rpn[:2])
 model_cls = Model([img_input, roi_input], classifier)
 model_all = Model([img_input, roi_input], rpn[:2] + classifier)
 
-# model_all.summary()
+model_rpn.summary()
 # plot_model(model_rpn, to_file='model_rpn.jpg', show_shapes=True, show_layer_names=True)
 # plot_model(model_cls, to_file='model_cls.jpg', show_shapes=True, show_layer_names=True)
 # plot_model(model_all, to_file='model_all.jpg', show_shapes=True, show_layer_names=True)
