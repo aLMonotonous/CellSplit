@@ -180,7 +180,7 @@ def cal_rpn_y(boxes, C, detail=False):
                         if iou > ol_max:
                             # this is a valid positive anchor
                             # note that there could be bbox that has no anchor
-                            anchor_overlap_rgr[iy, ix, idx_anchor] = 1
+                            # anchor_overlap_rgr[iy, ix, idx_anchor] = 1
                             # for overlap > threshold , set overlap
                             anchor_cls_target[iy, ix, idx_anchor] = 1
                             anchor_valid_cls[iy, ix, idx_anchor] = 1
@@ -200,10 +200,10 @@ def cal_rpn_y(boxes, C, detail=False):
         # TODO there should be a way to solve when can not find a best anchor for a bbox
         # update rgr target
         for idx_dbox, ib in enumerate(dboxes):
-            x, y, idx = best_anchor_index[idx_dbox]
+            y, x, idx = best_anchor_index[idx_dbox]
             start = int(idx * 4)
-            # anchor_valid_cls[x, y, start:start + 4] = 1
-            anchor_rgr_target[x, y, start:start + 4] = best_rgr_bbox[idx_dbox]
+            anchor_overlap_rgr[y, x, idx] = 1
+            anchor_rgr_target[y, x, start:start + 4] = best_rgr_bbox[idx_dbox]
 
     if detail:
         # canv = np.zeros((dh, dw, 3), dtype="uint8")
@@ -245,13 +245,15 @@ def cal_rpn_y(boxes, C, detail=False):
 
     anchor_rgr_target = np.transpose(anchor_rgr_target, [2, 0, 1])
     anchor_rgr_target = np.expand_dims(anchor_rgr_target, axis=0)
+    
+    anchor_cls_target = np.transpose(anchor_cls_target, [2, 0, 1])
     anchor_cls_target = np.expand_dims(anchor_cls_target, axis=0)
 
     pos_locs = np.where(np.logical_and(anchor_overlap_rgr[0, :, :, :] == 1, anchor_valid_cls[0, :, :, :] == 1))
     neg_locs = np.where(np.logical_and(anchor_overlap_rgr[0, :, :, :] == 0, anchor_valid_cls[0, :, :, :] == 1))
 
     rgr_y = np.concatenate([np.repeat(anchor_overlap_rgr, 4, axis=1), anchor_rgr_target], axis=1)
-    cls_y = np.concatenate([anchor_valid_cls, anchor_overlap_rgr], axis=1)
+    cls_y = np.concatenate([anchor_valid_cls, anchor_cls_target], axis=1)
     # rgr_y = anchor_rgr_target
     #   # cls_y = anchor_cls_target
     # shape :(1,anchors_idx,w,h)
@@ -312,6 +314,7 @@ def load_data(path, C):
 
 
 if __name__ == '__main__':
+    detail = True
     C = Configure()
     load_data('../', C)
     img_width = C.img_width
@@ -340,9 +343,28 @@ if __name__ == '__main__':
             data_xs.append(X)
             data_cls_ys.append(Y[0])
             data_rgr_ys.append(Y[1])
-            print()
-            print('cls', Y[0].shape, Y[0][0, 5, 5, :])
-            print('rgr', Y[1].shape, Y[1][0, 25, 15, :])
+
+            lim = 20
+            if detail:
+                cls = Y[0]
+                rgr = Y[1]
+                for i in range(lim):
+                    for j in range(lim):
+                        # if 1 in cls[0, i, j, :]:
+                        print(cls[0, i, j, :9])
+                        print(cls[0, i, j, 9:])
+                        print("-c-" * 8)
+
+                for i in range(lim):
+                    for j in range(lim):
+                        if 1 in rgr[0, i, j, :]:
+                            print(rgr[0, i, j, :36])
+                            print(rgr[0, i, j, 36:])
+                            print("-r-" * 8)
+
+                print()
+                print('cls', Y[0].shape, Y[0][0, 5, 5, :])
+                print('rgr', Y[1].shape, Y[1][0, 25, 15, :])
         np.save(save_path_x, data_xs)
         np.save(save_path_rgr, data_rgr_ys)
         np.save(save_path_cls, data_cls_ys)
