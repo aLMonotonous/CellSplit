@@ -249,12 +249,12 @@ def cal_rpn_y(boxes, C, detail=False):
 
     pos_locs = np.where(np.logical_and(anchor_overlap_rgr[0, :, :, :] == 1, anchor_valid_cls[0, :, :, :] == 1))
     neg_locs = np.where(np.logical_and(anchor_overlap_rgr[0, :, :, :] == 0, anchor_valid_cls[0, :, :, :] == 1))
-
+    num_pos = len(pos_locs[0])
     num_regions = 128
     if len(pos_locs[0]) > num_regions / 2:
         val_locs = random.sample(range(len(pos_locs[0])), len(pos_locs[0]) - num_regions / 2)
         anchor_valid_cls[0, pos_locs[0][val_locs], pos_locs[1][val_locs], pos_locs[2][val_locs]] = 0
-        num_pos = num_regions / 2
+    num_pos = num_regions / 2
 
     if len(neg_locs[0]) + num_pos > num_regions:
         val_locs = random.sample(range(len(neg_locs[0])), len(neg_locs[0]) - num_pos)
