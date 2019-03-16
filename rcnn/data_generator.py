@@ -5,7 +5,7 @@ import numpy as np
 
 from display import get_img_annotation
 from rcnn.Configure import Configure
-
+import random
 
 def union(au, bu):
     area_a = (au[2] - au[0]) * (au[3] - au[1])
@@ -234,8 +234,6 @@ def cal_rpn_y(boxes, C, detail=False):
         cv2.imshow('BBox Downscale', canv)
         cv2.waitKey(0)
 
-    # TODO
-    #  Add filters to reduce data imbalance
 
     anchor_valid_cls = np.transpose(anchor_valid_cls, [2, 0, 1])
     anchor_valid_cls = np.expand_dims(anchor_valid_cls, axis=0)
@@ -245,12 +243,23 @@ def cal_rpn_y(boxes, C, detail=False):
 
     anchor_rgr_target = np.transpose(anchor_rgr_target, [2, 0, 1])
     anchor_rgr_target = np.expand_dims(anchor_rgr_target, axis=0)
-    
+
     anchor_cls_target = np.transpose(anchor_cls_target, [2, 0, 1])
     anchor_cls_target = np.expand_dims(anchor_cls_target, axis=0)
 
     pos_locs = np.where(np.logical_and(anchor_overlap_rgr[0, :, :, :] == 1, anchor_valid_cls[0, :, :, :] == 1))
     neg_locs = np.where(np.logical_and(anchor_overlap_rgr[0, :, :, :] == 0, anchor_valid_cls[0, :, :, :] == 1))
+
+    num_regions = 128
+    if len(pos_locs[0]) > num_regions / 2:
+        val_locs = random.sample(range(len(pos_locs[0])), len(pos_locs[0]) - num_regions / 2)
+        anchor_valid_cls[0, pos_locs[0][val_locs], pos_locs[1][val_locs], pos_locs[2][val_locs]] = 0
+        num_pos = num_regions / 2
+
+    if len(neg_locs[0]) + num_pos > num_regions:
+        val_locs = random.sample(range(len(neg_locs[0])), len(neg_locs[0]) - num_pos)
+        anchor_valid_cls[0, neg_locs[0][val_locs], neg_locs[1][val_locs], neg_locs[2][val_locs]] = 0
+
 
     rgr_y = np.concatenate([np.repeat(anchor_overlap_rgr, 4, axis=1), anchor_rgr_target], axis=1)
     cls_y = np.concatenate([anchor_valid_cls, anchor_cls_target], axis=1)
