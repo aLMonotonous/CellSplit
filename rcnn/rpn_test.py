@@ -56,7 +56,7 @@ def apply_regr_np(X, T):
         return X
 
 
-def non_max_suppression_fast(boxes, probs, overlap_thresh=0.9, max_boxes=300):
+def non_max_suppression_fast(boxes, probs, overlap_thresh=0.9, max_boxes=100):
     # code used from here: http://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
     # if there are no boxes, return an empty list
     if len(boxes) == 0:
@@ -224,8 +224,8 @@ def rpn_decode(cls_target, rgr_target, C, use_rgr=True):
     curr_layer = 0
     for isize in anchor_sizes:
         for iratio in anchor_ratios:
-            ah = int(np.sqrt(iratio * isize))
-            aw = int(isize / ah)
+            ah = int(iratio[0] * isize)
+            aw = int(iratio[1] * isize)
             rgr = rgr_target[0, :, :, 4 * curr_layer:4 * curr_layer + 4]
             rgr = np.transpose(rgr, (2, 0, 1))
             X, Y = np.meshgrid(np.arange(cols), np.arange(rows))
@@ -244,28 +244,22 @@ def rpn_decode(cls_target, rgr_target, C, use_rgr=True):
             A[1, :, :, curr_layer] = np.maximum(0, A[1, :, :, curr_layer])
             A[2, :, :, curr_layer] = np.minimum(cols - 1, A[2, :, :, curr_layer])
             A[3, :, :, curr_layer] = np.minimum(rows - 1, A[3, :, :, curr_layer])
-
-            all_boxes = np.reshape(A.transpose((0, 3, 1, 2)), (4, -1)).transpose((1, 0))
-            all_probs = cls_target.transpose((0, 3, 1, 2)).reshape((-1))
-
-            x1 = all_boxes[:, 0]
-            y1 = all_boxes[:, 1]
-            x2 = all_boxes[:, 2]
-            y2 = all_boxes[:, 3]
-
-            idxs = np.where((x1 - x2 >= 0) | (y1 - y2 >= 0))
-
-            all_boxes = np.delete(all_boxes, idxs, 0)
-            all_probs = np.delete(all_probs, idxs, 0)
-
             curr_layer += 1
-            result = non_max_suppression_fast(all_boxes, all_probs)[
-                0]
+    all_boxes = np.reshape(A.transpose((0, 3, 1, 2)), (4, -1)).transpose((1, 0))
+    all_probs = cls_target.transpose((0, 3, 1, 2)).reshape((-1))
 
-            return result
+    x1 = all_boxes[:, 0]
+    y1 = all_boxes[:, 1]
+    x2 = all_boxes[:, 2]
+    y2 = all_boxes[:, 3]
+    idxs = np.where((x1 - x2 >= 0) | (y1 - y2 >= 0))
+    all_boxes = np.delete(all_boxes, idxs, 0)
+    all_probs = np.delete(all_probs, idxs, 0)
+    result = non_max_suppression_fast(all_boxes, all_probs)
+    return result
 
 
-def trans_cor(x, y, h, w, C):
+def trans_cor(x, y, h, w):
     """
     trans x,y,h,w to x1,,y1,x2,y2;
     input is the boxes inoriginal size
@@ -322,9 +316,14 @@ def test():
 
     # res = [cls_all[0], rgr_all[1]]
     print(res[0].shape, res[1].shape)
-    boxes = rpn_decode(res[0], res[1], C)
+    R = rpn_decode(res[0], res[1], C)
+    boxes = R[0]
+    print(boxes.shape)
+    # trans_v = np.vectorize(trans_cor())
+    # c = trans_v(boxes)
+    # X2, Y1, Y2, IouS = calc_iou(R, img, C, class_mapping)
     print(np.shape(boxes))
-    # boxes *= 8
+    boxes *= 8
     show_img_annotation(img_path, boxes, False)
 
 
