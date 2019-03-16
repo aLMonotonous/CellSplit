@@ -78,7 +78,7 @@ for idx_epoch in range(num_epochs):
                 break
             elif C.data_load_type == 'whole':
                 X = x_all[data_idx]
-                X = np.transpose(X, (0, 2, 1, 3))
+                # X = np.transpose(X, (0, 2, 1, 3))
                 Y = [cls_all[data_idx], rgr_all[data_idx]]
                 print('using {}th data to train'.format(data_idx))
                 data_idx += 1

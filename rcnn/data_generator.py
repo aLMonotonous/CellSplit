@@ -109,16 +109,15 @@ def cal_rpn_y(boxes, C, detail=False):
     best_anchor_index = np.zeros([n_boxes, 3]).astype('uint8')
 
     # n_anchors = dw * dh *
-    anchor_cls_target = np.zeros([dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes)])
-    anchor_rgr_target = np.zeros([dw, dh, 4 * len(C.anchor_ratios) * len(C.anchor_sizes)])
+    anchor_cls_target = np.zeros([dh, dw, len(C.anchor_ratios) * len(C.anchor_sizes)])
+    anchor_rgr_target = np.zeros([dh, dw, 4 * len(C.anchor_ratios) * len(C.anchor_sizes)])
 
     # record is this anchor valid for cls training
-    anchor_valid_cls = np.zeros([dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes)]).astype('uint8')
+    anchor_valid_cls = np.zeros([dh, dw, len(C.anchor_ratios) * len(C.anchor_sizes)]).astype('uint8')
 
     # record is this anchor have bigger overlap with bbox
     # that determines  if it is valid for a bbox rgr
-    anchor_overlap_rgr = np.zeros([dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes)]).astype('uint8')
-    detail = True
+    anchor_overlap_rgr = np.zeros([dh, dw, len(C.anchor_ratios) * len(C.anchor_sizes)]).astype('uint8')
     for ibox in boxes:
         # no need for class label
         ibox = np.array(ibox[1:]).astype('float32')
@@ -156,9 +155,10 @@ def cal_rpn_y(boxes, C, detail=False):
         #                 #     cv2.rectangle(canv, (axmin, aymin), (axmax, aymax), get_random_clr())
     for idx_size, isize in enumerate(C.anchor_sizes):
         for idx_ratio, iratio in enumerate(C.anchor_ratios):
-            ah = int(np.sqrt(iratio * isize))
-            aw = int(isize / ah)
+            ah = isize * iratio[0]
+            aw = isize * iratio[1]
             idx_anchor = idx_ratio + idx_size * len(C.anchor_ratios)
+            # print(ah,aw)
             for ix in range(dw):
                 axmin = int(ix - aw / 2)
                 axmax = int(ix + aw / 2)
@@ -173,17 +173,17 @@ def cal_rpn_y(boxes, C, detail=False):
                         continue
                     # anchor_index = cal_anchor_index()
                     cur_anchor = [axmin, aymin, axmax, aymax]
-                    cur_anchor_idx = [ix, iy, idx_anchor]
+                    cur_anchor_idx = [iy, ix, idx_anchor]
                     # cal IoU for every bbox
                     for idx_dbox, ib in enumerate(dboxes):
                         iou = intersection(cur_anchor, ib) / union(cur_anchor, ib)
                         if iou > ol_max:
                             # this is a valid positive anchor
                             # note that there could be bbox that has no anchor
-                            anchor_overlap_rgr[ix, iy, idx_anchor] = 1
+                            anchor_overlap_rgr[iy, ix, idx_anchor] = 1
                             # for overlap > threshold , set overlap
-                            anchor_cls_target[ix, iy, idx_anchor] = 1
-                            anchor_valid_cls[ix, iy, idx_anchor] = 1
+                            anchor_cls_target[iy, ix, idx_anchor] = 1
+                            anchor_valid_cls[iy, ix, idx_anchor] = 1
                         if iou > best_iou_bbox[idx_dbox]:
                             best_iou_bbox[idx_dbox] = iou
                             # record index for best anchor, could be use for update rgr target
@@ -195,7 +195,7 @@ def cal_rpn_y(boxes, C, detail=False):
                             # only best anchor for bbox deserve a rgr para.
                         if iou < ol_min:
                             # this is a valid negative anchor
-                            anchor_valid_cls[ix, iy, idx_anchor] = 1
+                            anchor_valid_cls[iy, ix, idx_anchor] = 1
         # after find best anchor for every bbox (suppose),
         # TODO there should be a way to solve when can not find a best anchor for a bbox
         # update rgr target
@@ -214,16 +214,16 @@ def cal_rpn_y(boxes, C, detail=False):
         print(dboxes)
         print("best rgr target")
         # print(anchor_rgr_target)
-        shape = (dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes))
+        shape = (dh, dw, len(C.anchor_ratios) * len(C.anchor_sizes))
         for idx in itertools.product(*[range(s) for s in shape]):
             if anchor_rgr_target[idx] != 0:
                 print(idx, anchor_rgr_target[idx])
-        print("cls target")
-        print(anchor_cls_target)
+        # print("cls target")
+        # print(anchor_cls_target)
         # # show best anchors
         for b in best_anchor_bbox:
             cv2.rectangle(canv, (b[0], b[1]), (b[2], b[3]), get_random_clr())
-        shape = (dw, dh, len(C.anchor_ratios) * len(C.anchor_sizes))
+        shape = (dh, dw, len(C.anchor_ratios) * len(C.anchor_sizes))
         # show valid postive anchors
         # for idx in itertools.product(*[range(s) for s in shape]):
         #     if anchor_cls_target[idx] == 1.0:
@@ -258,7 +258,7 @@ def cal_rpn_y(boxes, C, detail=False):
     return cls_y, rgr_y
 
 
-def get_rpn_target(all_imgs, C, mode='train'):
+def get_rpn_target(all_imgs, C, mode='train', detail=False):
     while True:
         if mode == 'train':
             np.random.shuffle(all_imgs)
@@ -270,7 +270,7 @@ def get_rpn_target(all_imgs, C, mode='train'):
 
             x_img = cv2.imread(img_path)
             rows, cols, _ = x_img.shape
-            y_rpn_cls, y_rpn_rgr = cal_rpn_y(bboxes, C)
+            y_rpn_cls, y_rpn_rgr = cal_rpn_y(bboxes, C, detail)
             # pre-procession
             # BGR -> RGB
             x_img = x_img[:, :, (2, 0, 1)]
@@ -284,8 +284,8 @@ def get_rpn_target(all_imgs, C, mode='train'):
             x_img = np.expand_dims(x_img, axis=0)
             # tf
             x_img = np.transpose(x_img, (0, 2, 3, 1))
-            y_rpn_cls = np.transpose(y_rpn_cls, (0, 3, 2, 1))
-            y_rpn_rgr = np.transpose(y_rpn_rgr, (0, 3, 2, 1))
+            y_rpn_cls = np.transpose(y_rpn_cls, (0, 2, 3, 1))
+            y_rpn_rgr = np.transpose(y_rpn_rgr, (0, 2, 3, 1))
             # print(y_rpn_cls.shape, y_rpn_rgr.shape )
             y_rpn_cls = y_rpn_cls.astype('float32')
             y_rpn_rgr = y_rpn_rgr.astype('float32')
@@ -333,7 +333,7 @@ if __name__ == '__main__':
         save_path_rgr = '../data/merge_data/rgr.npy'
         save_path_cls = '../data/merge_data/cls.npy'
         all_imgs = load_data('../', C)
-        gen = get_rpn_target(all_imgs, C, mode='test')
+        gen = get_rpn_target(all_imgs, C, mode='test', detail=False)
         for i in range(len(all_imgs)):
             print('fixing {}th data'.format(i))
             X, Y = next(gen)

@@ -5,8 +5,10 @@ class Configure:
         # note that down scale means the ratio along singe single height or width
         self.down_scale = 1. / 8
         # 30,40
-        self.anchor_ratios = [1., 0.5, 2.]
-        self.anchor_sizes = [128., 256., 512.]
+        # h/w
+        self.anchor_ratios = [(1, 1), (1, 2), (1.5, 2)]
+
+        self.anchor_sizes = [8., 16., 32.]
         self.overlap_max = 0.7
         self.overlap_min = 0.3
         self.ol_range = [self.overlap_min, self.overlap_max]

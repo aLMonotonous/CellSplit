@@ -174,6 +174,19 @@ def rpn_decode(cls_target, rgr_target, C, use_rgr=True):
             return result
 
 
+def trans_cor(x, y, h, w, C):
+    """
+    trans x,y,h,w to x1,,y1,x2,y2;
+    input is the boxes inoriginal size
+    :param x:
+    :param y:
+    :param h:
+    :param w:
+    :param C:
+    :return:
+    """
+
+
 def rpn_decode(cls_target, rgr_target, C):
     cls = cls_target[0, :, :, :]
     rgr = rgr_target[0, :, :, :]
@@ -190,7 +203,7 @@ def rpn_decode(cls_target, rgr_target, C):
                     h = int(np.sqrt(size * ratio))
                     w = int(size / h)
                     boxes.append([box_x, box_y, h, w])
-    return np.array(boxes)
+    return np.array(boxes) / C.down_scale
 
 
 def test():
@@ -214,7 +227,7 @@ def test():
     print(res[0].shape, res[1].shape)
     boxes = rpn_decode(res[0], res[1], C)
     print(np.shape(boxes))
-    boxes *= 8
+    # boxes *= 8
     show_img_annotation(img_path, boxes, False)
 
 
